@@ -14,10 +14,13 @@ services:
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=supersecret
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - ecommerce_net
+    command: >
+      sh -c "php /var/www/html/setup_admin.php && php-fpm"
 
   nginx:
     image: nginx:1.25
@@ -41,9 +44,15 @@ services:
       MYSQL_DATABASE: ecommerce_db
     volumes:
       - db_data:/var/lib/mysql
+      - ./src/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
     networks:
       - ecommerce_net
+
 volumes:
   db_data:
 
