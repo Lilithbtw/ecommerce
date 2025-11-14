@@ -13,7 +13,9 @@
     <nav class="nav">
       <a href="/"><i class="fas fa-home icon"></i>Inicio</a>
       <a href="/cart"><i class="fas fa-shopping-cart icon"></i>Carrito</a>
-      <?php if(!empty($_SESSION['user_id'])): ?>
+      <?php 
+      if(!empty($_SESSION['user_id'])): 
+      ?>
         <a href="/logout"><i class="fas fa-sign-out-alt icon"></i>Cerrar Sesión</a>
         <?php
           // Verificar si es admin

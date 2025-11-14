@@ -35,39 +35,20 @@ class CheckoutController {
         
         // Obtener datos del usuario
         $user_id = $_SESSION['user_id'] ?? null;
-        $customer_name = null;
-        $customer_email = null;
-        
-        // Si es invitado, validar datos de POST
-        if(empty($user_id)){
-            $customer_name = trim($_POST['name'] ?? '');
-            $customer_email = trim($_POST['email'] ?? '');
-            
-            if(strlen($customer_name) < 3){
-                http_response_code(400);
-                die('El nombre debe tener al menos 3 caracteres');
-            }
-            
-            if(!filter_var($customer_email, FILTER_VALIDATE_EMAIL)){
-                http_response_code(400);
-                die('Email inválido');
-            }
-        } else {
-            // ** FIX: Si el usuario está logueado, obtenemos su nombre y email de la BD **
-            $stmt = $this->db->pdo()->prepare('SELECT name, email FROM users WHERE id = ?');
-            $stmt->execute([$user_id]);
-            $user = $stmt->fetch();
 
-            if($user) {
-                $customer_name = $user['name'];
-                $customer_email = $user['email'];
-            } else {
-                // Deberíamos limpiar la sesión si el ID de usuario es inválido/no existe
-                http_response_code(401);
-                die('Error de autenticación: Usuario logueado no encontrado en la base de datos.');
-            }
+        // ** FIX: Si el usuario está logueado, obtenemos su nombre y email de la BD **
+        $stmt = $this->db->pdo()->prepare('SELECT name, email FROM users WHERE id = ?');
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
+
+        if($user) {
+            $customer_name = $user['name'];
+            $customer_email = $user['email'];
+        } else {
+            // Deberíamos limpiar la sesión si el ID de usuario es inválido/no existe
+            http_response_code(401);
+            die('Error de autenticación: Usuario logueado no encontrado en la base de datos.');
         }
-        
         // Calcular total
         $total = 0;
         foreach($cart as $item){
