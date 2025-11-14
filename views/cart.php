@@ -36,12 +36,51 @@
         <div class="cart-total">
             Total: <?=number_format($total, 2)?>€
         </div>
-        
         <form method="post" action="/checkout" style="text-align: right; margin-top: 1rem;">
-            <input type="hidden" name="csrf" value="<?=htmlspecialchars($_SESSION['csrf']??'')?>">
-            <button class="btn"><i class="icon fa-solid fa-credit-card"></i> Realizar compra</button>
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf'] ?? '') ?>">
+            
+            <?php if(empty($_SESSION['user_id'])): ?>
+                <div style="text-align: left; margin-top: 2rem; margin-bottom: 1rem; padding: 10px; border: 1px solid #000;">
+                    <p><strong>¡Estás comprando como invitado!</strong> Por favor, proporciona tu información de contacto:</p>
+                    
+                    <div class="form-group">
+                        <label for="checkout_name" class="form-label">Nombre completo:</label>
+                        <input 
+                            type="text" 
+                            id="checkout_name" 
+                            name="name" 
+                            required 
+                            class="form-input" 
+                            value="<?= htmlspecialchars($_POST['name'] ?? '') ?>"
+                            minlength="3"
+                            maxlength="100"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="checkout_email" class="form-label">Email de contacto:</label>
+                        <input 
+                            type="email" 
+                            id="checkout_email" 
+                            name="email" 
+                            required 
+                            class="form-input" 
+                            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                            maxlength="255"
+                        >
+                    </div>
+                </div>
+            <?php else: ?>
+                <p style="text-align: left;">
+                    <strong>Tu pedido se asociará a tu cuenta de usuario</strong> (ID: <?= htmlspecialchars($_SESSION['user_id']) ?>).
+                </p>
+            <?php endif; ?>
+            
+            <button type="submit" class="btn" name="action" value="checkout">
+                <i class="icon fa-solid fa-credit-card"></i> Realizar compra
+            </button>
         </form>
-    <?php endif; ?>
+        <?php endif; ?>
 </div>
 </body>
 </html>

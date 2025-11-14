@@ -52,6 +52,24 @@ services:
     restart: unless-stopped
     networks:
       - ecommerce_net
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: php_ecommerce_pma
+    # Mapea el puerto 8081 del host al puerto 80 del contenedor
+    ports:
+      - "8081:80" 
+    environment:
+      # Conecta phpMyAdmin al host del servicio 'db'
+      PMA_HOST: db
+      # Usa el puerto por defecto de MySQL
+      PMA_PORT: 3306 
+      # Permite loguearse con la contraseña de root (necesario para la configuración)
+      MYSQL_ROOT_PASSWORD: secret 
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - ecommerce_net
 
 volumes:
   db_data:

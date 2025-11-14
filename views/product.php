@@ -18,13 +18,12 @@
         <div>
             <h1><?=htmlspecialchars($product['name'])?></h1>
             <p class="product-desc"><?=nl2br(htmlspecialchars($product['description']))?></p>
-            <p class="product-price"><?=number_format($product['price'],2)?>€</p>
-            
-            <form method="post" action="/cart" class="form">
-                <input type="hidden" name="add_id" value="<?=$product['id']?>">
+            <p class="product-price"><?=number_format($product['price'],2)?>€</p>            
+            <form method="post" action="/cart/add" class="form">
+                <input type="hidden" name="add_id" value="<?= $product['id'] ?>">
                 <div class="form-group" style="display: flex; align-items: center; gap: 1rem;">
                     <label for="qty" class="form-label">Cantidad:</label> 
-                    <input id="qty" name="qty" value="1" size="2" class="form-input" style="width: 80px; text-align: center;">
+                    <input id="qty" name="qty" type="number" value="1" min="1" max="999" class="form-input" style="width: 80px; text-align: center;">
                 </div>
                 <button class="btn" type="submit"><i class="icon fa-solid fa-cart-shopping"></i> Agregar al carrito</button>
             </form>

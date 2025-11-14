@@ -13,8 +13,21 @@
     <nav class="nav">
       <a href="/"><i class="fas fa-home icon"></i>Inicio</a>
       <a href="/cart"><i class="fas fa-shopping-cart icon"></i>Carrito</a>
-      <a href="/admin"><i class="fas fa-cog icon"></i>Admin</a>
-      <a href="/login"><i class="fas fa-sign-in-alt icon"></i>Login</a>
+      <?php if(!empty($_SESSION['user_id'])): ?>
+        <a href="/logout"><i class="fas fa-sign-out-alt icon"></i>Cerrar Sesión</a>
+        <?php
+          // Verificar si es admin
+          $stmt = (new App\DB(require __DIR__.'/../config.php'))->pdo()->prepare('SELECT is_admin FROM users WHERE id=?');
+          $stmt->execute([$_SESSION['user_id']]);
+          $user = $stmt->fetch();
+          if($user && $user['is_admin']):
+        ?>
+          <a href="/admin"><i class="fas fa-cog icon"></i>Admin</a>
+        <?php endif; ?>
+      <?php else: ?>
+        <a href="/register"><i class="fas fa-user-plus icon"></i>Registrarse</a>
+        <a href="/login"><i class="fas fa-sign-in-alt icon"></i>Login</a>
+      <?php endif; ?>
     </nav>
 
     <!-- Hero Section -->
