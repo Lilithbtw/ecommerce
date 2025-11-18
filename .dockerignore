@@ -1,6 +1,5 @@
-vendor
-node_modules
 .git
 .gitignore
-*.zip
-*.log
+.dockerignore
+Dockerfile
+docker-compose.yaml

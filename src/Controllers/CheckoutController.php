@@ -12,7 +12,7 @@ class CheckoutController {
     }
     
     /**
-     * Crear una orden (POST /checkout)
+     * Crear una orden y redirigir a pago (POST /checkout)
      */
     public function createOrder(){
         if($_SERVER['REQUEST_METHOD'] !== 'POST'){
@@ -60,7 +60,7 @@ class CheckoutController {
             $pdo = $this->db->pdo();
             $pdo->beginTransaction();
             
-            // 1. Crear la orden
+            // 1. Crear la orden (status 'pending')
             $stmt = $pdo->prepare('
                 INSERT INTO orders (user_id, client_name, client_email, total, status, created_at)
                 VALUES (?, ?, ?, ?, ?, NOW())
@@ -93,11 +93,8 @@ class CheckoutController {
             // Confirmar transacción
             $pdo->commit();
             
-            // Limpiar carrito
-            $_SESSION['cart'] = [];
-            
-            // Redirigir a página de éxito
-            header('Location: /order-success?id=' . $order_id);
+            // ** CAMBIO CLAVE: NO limpiar carrito. Redirigir a la inicialización del pago. **
+            header('Location: /payment/redsys/init/' . $order_id);
             exit;
             
         } catch(\Exception $e){
@@ -111,6 +108,7 @@ class CheckoutController {
      * Mostrar página de éxito (GET /order-success?id=X)
      */
     public function success(){
+        // Esta página ahora solo debería mostrarse si el pago ha sido CONFIRMADO.
         $order_id = intval($_GET['id'] ?? 0);
         
         if($order_id <= 0){
@@ -119,6 +117,7 @@ class CheckoutController {
         }
         
         // Obtener datos de la orden
+        // ** FIX: Asegurarse de que el status de la orden es 'paid' o similar antes de mostrar éxito **
         $stmt = $this->db->pdo()->prepare('
             SELECT o.*, 
                    GROUP_CONCAT(oi.product_id) as product_ids,
@@ -126,15 +125,15 @@ class CheckoutController {
                    GROUP_CONCAT(oi.price) as prices
             FROM orders o
             LEFT JOIN order_items oi ON o.id = oi.order_id
-            WHERE o.id = ?
+            WHERE o.id = ? AND o.status = ?
             GROUP BY o.id
         ');
-        $stmt->execute([$order_id]);
+        $stmt->execute([$order_id, 'paid']); // Solo si está pagada
         $order = $stmt->fetch();
         
         if(!$order){
             http_response_code(404);
-            die('Orden no encontrada');
+            die('Orden no encontrada o pago no confirmado');
         }
         
         // Obtener items detallados
@@ -147,6 +146,12 @@ class CheckoutController {
         $stmt->execute([$order_id]);
         $items = $stmt->fetchAll();
         
+        // ** FIX: Asegurar que la orden pertenece al usuario logueado antes de mostrarla **
+        if($order['user_id'] !== ($_SESSION['user_id'] ?? null)) {
+             http_response_code(403);
+             die('Acceso denegado a esta orden');
+        }
+
         include __DIR__.'/../../views/order-success.php';
     }
     
@@ -170,6 +175,17 @@ class CheckoutController {
         if(!$order){
             http_response_code(404);
             die('Orden no encontrada');
+        }
+        
+        // ** FIX: Control de acceso y estado del pago **
+        if($order['user_id'] !== ($_SESSION['user_id'] ?? null)) {
+             http_response_code(403);
+             die('Acceso denegado a esta factura');
+        }
+        
+        if($order['status'] !== 'paid') {
+             http_response_code(403);
+             die('La factura solo está disponible para pedidos pagados');
         }
         
         // Obtener items de la orden
@@ -202,6 +218,13 @@ class CheckoutController {
         $pdf->Cell(50, 7, 'Fecha:');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(0, 7, date('d/m/Y H:i', strtotime($order['created_at'])), 0, 1);
+        
+        // Estado de la orden
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Estado:');
+        $pdf->SetFont('Arial', '', 10);
+        $status_display = ['paid' => 'Pagada', 'pending' => 'Pendiente', 'rejected' => 'Rechazada'];
+        $pdf->Cell(0, 7, $status_display[$order['status']] ?? 'Desconocido', 0, 1);
         
         $pdf->Ln(5);
         

@@ -7,12 +7,23 @@ services:
     volumes:
       - .:/var/www/html
     environment:
+      # Database environment variables
       - MYSQL_HOST=db
       - MYSQL_USER=root
       - MYSQL_PASSWORD=secret
       - MYSQL_DATABASE=ecommerce_db
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=supersecret
+      
+      # Redsys Payment Gateway Configuration (Injected by Docker)
+      - REDSYS_API_URL=https://sis-t.redsys.es:25443/sis/realizarPago
+      - REDSYS_FUC=999008881
+      - REDSYS_TERMINAL_ID=001
+      - REDSYS_SECRET_KEY=sq7HjrUOBfKmC57avmDSGStj8eHBS59pefHQ
+      - REDSYS_CURRENCY=978
+      - REDSYS_TRANSACTION_TYPE=0
+      - REDSYS_CONSUMER_LANGUAGE=001
+      
     depends_on:
       db:
         condition: service_healthy
@@ -59,15 +70,13 @@ services:
     ports:
       - "8081:80" 
     environment:
-      # Conecta phpMyAdmin al host del servicio 'db'
+      # Conecta phpMyAdmin al host del servicio 'db' (nombre del contenedor)
       PMA_HOST: db
-      # Usa el puerto por defecto de MySQL
-      PMA_PORT: 3306 
-      # Permite loguearse con la contraseña de root (necesario para la configuración)
-      MYSQL_ROOT_PASSWORD: secret 
+      # Autenticación con usuario root
+      PMA_USER: root
+      PMA_PASSWORD: secret
     depends_on:
       - db
-    restart: unless-stopped
     networks:
       - ecommerce_net
 
