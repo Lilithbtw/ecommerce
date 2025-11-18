@@ -1,13 +1,15 @@
 version: "3.8"
-
 services:
-  php:
+  # 1. The combined application service (PHP + Nginx)
+  app:
     build: .
-    container_name: php_ecommerce_php
+    container_name: ecommerce_app
+    ports:
+      - "8080:80"  # Expose Nginx port
     volumes:
-      - .:/var/www/html
+      - .:/var/www/html # Useful for live code changes during development
     environment:
-      # Database environment variables
+      # Application Environment Variables
       - MYSQL_HOST=db
       - MYSQL_USER=root
       - MYSQL_PASSWORD=secret
@@ -15,7 +17,7 @@ services:
       - ADMIN_EMAIL=admin@example.com
       - ADMIN_PASSWORD=supersecret
       
-      # Redsys Payment Gateway Configuration (Injected by Docker)
+      # Redsys Payment Gateway Configuration
       - REDSYS_API_URL=https://sis-t.redsys.es:25443/sis/realizarPago
       - REDSYS_FUC=999008881
       - REDSYS_TERMINAL_ID=001
@@ -30,23 +32,11 @@ services:
     restart: unless-stopped
     networks:
       - ecommerce_net
+    # Execute the admin setup script, then start Supervisor (Nginx + PHP-FPM)
     command: >
-      sh -c "php /var/www/html/setup_admin.php && php-fpm"
+      sh -c "php /var/www/html/setup_admin.php && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
 
-  nginx:
-    image: nginx:1.25
-    container_name: php_ecommerce_nginx
-    ports:
-      - "8080:80"
-    volumes:
-      - .:/var/www/html
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - php
-    restart: unless-stopped
-    networks:
-      - ecommerce_net
-
+  # 2. Database Service
   db:
     image: mysql:8.0
     container_name: php_ecommerce_db
@@ -55,6 +45,7 @@ services:
       MYSQL_DATABASE: ecommerce_db
     volumes:
       - db_data:/var/lib/mysql
+      # Initialization: Runs your SQL script on first run to create tables and seed data
       - ./src/setup.sql:/docker-entrypoint-initdb.d/setup.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -63,16 +54,15 @@ services:
     restart: unless-stopped
     networks:
       - ecommerce_net
+      
+  # 3. phpMyAdmin Service
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: php_ecommerce_pma
-    # Mapea el puerto 8081 del host al puerto 80 del contenedor
     ports:
       - "8081:80" 
     environment:
-      # Conecta phpMyAdmin al host del servicio 'db' (nombre del contenedor)
       PMA_HOST: db
-      # Autenticación con usuario root
       PMA_USER: root
       PMA_PASSWORD: secret
     depends_on:
